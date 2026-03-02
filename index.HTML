@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Travel Advisor — Smart Questionnaire</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --ink:     #0f0e17;
+    --sand:    #f8f3ea;
+    --gold:    #c9a84c;
+    --gold2:   #e8c97a;
+    --sky:     #2c5f8a;
+    --sky2:    #3d7ab5;
+    --cream:   #fdf8f0;
+    --mist:    #e8e2d9;
+    --terra:   #9b4c2a;
+    --sage:    #4a7c59;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--ink);
+    color: var(--sand);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── ANIMATED BACKGROUND ── */
+  .bg {
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse at 20% 20%, #1a2a4a 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, #2a1a0a 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, #0d1f0d 0%, transparent 80%),
+                var(--ink);
+  }
+  .bg::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* Stars */
+  .stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 4s infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    position: relative; z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 60px 24px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeDown 0.8s ease both;
+  }
+  .header .globe {
+    font-size: 56px;
+    display: block;
+    margin-bottom: 16px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 6vw, 52px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--gold2), var(--gold), #fff8e0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header .subtitle {
+    margin-top: 12px;
+    color: #a0906e;
+    font-size: 15px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    margin-bottom: 40px;
+    animation: fadeDown 0.8s 0.2s ease both;
+  }
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sky), var(--gold));
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0%;
+  }
+
+  /* ── STEP PANELS ── */
+  .step {
+    display: none;
+    animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  .step.active { display: block; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-30px); }
+  }
+
+  .step-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .step-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .step-subtitle {
+    color: #7a7060;
+    font-size: 14px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #7a7060;
+    margin-bottom: 10px;
+  }
+
+  .input-field {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: var(--sand);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .input-field::placeholder { color: rgba(255,255,255,0.2); }
+  .input-field:focus {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.06);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+  }
+  .input-field option { background: #1a1a2e; }
+
+  /* ── CARD GRID ── */
+  .card-grid {
+    display: grid;
+    gap: 14px;
+  }
+  .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+    user-select: none;
+  }
+  .card:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(201,168,76,0.3);
+    transform: translateY(-2px);
+  }
+  .card.selected {
+    background: rgba(201,168,76,0.1);
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(201,168,76,0.15);
+  }
+  .card.selected .card-emoji { transform: scale(1.2); }
+  .card-emoji {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 10px;
+    transition: transform 0.3s;
+  }
+  .card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sand);
+    margin-bottom: 4px;
+  }
+  .card-desc {
+    font-size: 11px;
+    color: #665e50;
+    line-height: 1.4;
+  }
+  .card.selected .card-name { color: var(--gold2); }
+  .card.selected .card-desc { color: #a08060; }
+
+  /* ── INTEREST TAGS ── */
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
+  .interest-tag {
+    padding: 10px 18px;
+    border-radius: 100px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #8a7a65;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .interest-tag:hover {
+    border-color: rgba(201,168,76,0.4);
+    color: var(--gold2);
+    background: rgba(201,168,76,0.06);
+  }
+  .interest-tag.selected {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.12);
+    color: var(--gold2);
+    box-shadow: 0 2px 12px rgba(201,168,76,0.15);
+  }
+
+  /* ── RANGE SLIDER ── */
+  .range-display {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .range-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--gold2);
+    min-width: 80px;
+    text-align: center;
+  }
+  .range-meta { flex: 1; }
+  .range-meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #665e50;
+    margin-bottom: 4px;
+  }
+  .range-meta-desc { font-size: 13px; color: #8a7a65; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    outline: none;
+    margin-top: 16px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(201,168,76,0.4);
+  }
+
+  /* ── NAVIGATION ── */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    color: #7a7060;
+  }
+  .btn-ghost:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: var(--sand);
+    background: rgba(255,255,255,0.05);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), #b8952e);
+    color: var(--ink);
+    box-shadow: 0 4px 20px rgba(201,168,76,0.35);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(201,168,76,0.5);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* ── RESULTS PANEL ── */
+  #results {
+    display: none;
+    animation: fadeIn 0.8s ease both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-hero {
+    background: linear-gradient(135deg, rgba(44,95,138,0.3), rgba(201,168,76,0.15));
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  .result-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 100px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold2);
+    margin-bottom: 16px;
+  }
+  .result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .result-subtitle { color: #7a7060; font-size: 14px; }
+
+  .result-content {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    line-height: 1.8;
+    font-size: 15px;
+    color: #c8bfb0;
+    white-space: pre-wrap;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .result-content::-webkit-scrollbar { width: 4px; }
+  .result-content::-webkit-scrollbar-track { background: transparent; }
+  .result-content::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+
+  /* Loading */
+  .loading-panel {
+    text-align: center;
+    padding: 80px 20px;
+  }
+  .loading-spinner {
+    width: 60px; height: 60px;
+    border: 3px solid rgba(201,168,76,0.15);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--gold2);
+    margin-bottom: 8px;
+  }
+  .loading-sub { color: #665e50; font-size: 13px; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold2);
+  }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #665e50; margin-top: 4px; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    margin: 40px 0;
+  }
+
+  /* ── VALIDATION MSG ── */
+  .err-msg {
+    color: #e07070;
+    font-size: 12px;
+    margin-top: 8px;
+    display: none;
+  }
+  .err-msg.show { display: block; }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-15px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .card-grid.cols-2,
+    .card-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+    .stats-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Animated Background -->
+<div class="bg"></div>
+<div class="stars" id="stars"></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="globe">🌍</span>
+    <h1>AI Travel Advisor</h1>
+    <p class="subtitle">Personalized Guidance for Every Journey</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-labels">
+      <span id="stepLabel">Step 1 of 5</span>
+      <span id="pctLabel">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- ─── STEP 1: Travel Style ─── -->
+  <div class="step active" id="step1">
+    <div class="step-label">Step 01 — Your Journey</div>
+    <div class="step-title">How are you traveling?</div>
+    <div class="step-subtitle">Your travel companion setup shapes every recommendation we'll make.</div>
+
+    <div class="card-grid cols-2">
+      <div class="card" data-value="solo" onclick="selectCard(this,'travelStyle')">
+        <span class="card-emoji">🎒</span>
+        <div class="card-name">Solo Explorer</div>
+        <div class="card-desc">Just me, myself, and the world</div>
+      </div>
+      <div class="card" data-value="couple" onclick="selectCard(this,'travelStyle')">
+        <span class="card-emoji">💑</span>
+        <div class="card-name">Romantic Duo</div>
+        <div class="card-desc">Traveling with my partner</div>
+      </div>
+      <div class="card" data-value="friends" onclick="selectCard(this,'travelStyle')">
+        <span class="card-emoji">👥</span>
+        <div class="card-name">With Friends</div>
+        <div class="card-desc">A crew ready for adventure</div>
+      </div>
+      <div class="card" data-value="family" onclick="selectCard(this,'travelStyle')">
+        <span class="card-emoji">👨‍👩‍👧‍👦</span>
+        <div class="card-name">Family Trip</div>
+        <div class="card-desc">Making memories with family</div>
+      </div>
+    </div>
+    <p class="err-msg" id="err-travelStyle">Please select how you're traveling.</p>
+
+    <div class="form-group" style="margin-top:20px;" id="groupSizeWrap" style="display:none;">
+      <label class="form-label">Group Size</label>
+      <select class="input-field" id="groupSize">
+        <option value="2">2 people</option>
+        <option value="3">3 people</option>
+        <option value="4">4 people</option>
+        <option value="5">5 people</option>
+        <option value="6">6+ people</option>
+      </select>
+    </div>
+
+    <div class="nav-row">
+      <span></span>
+      <button class="btn btn-primary" onclick="nextStep(1)">Continue ›</button>
+    </div>
+  </div>
+
+  <!-- ─── STEP 2: Age & Experience ─── -->
+  <div class="step" id="step2">
+    <div class="step-label">Step 02 — About You</div>
+    <div class="step-title">Tell us about yourself</div>
+    <div class="step-subtitle">Your age and experience level fine-tunes advice to fit your world perfectly.</div>
+
+    <div class="form-group">
+      <label class="form-label">Your Age</label>
+      <div class="range-display">
+        <div class="range-number" id="ageDisplay">28</div>
+        <div class="range-meta">
+          <div class="range-meta-label" id="ageGroupLabel">Twenties & Thirties</div>
+          <div class="range-meta-desc" id="ageGroupDesc">In your prime travel years — balanced comfort & adventure</div>
+          <input type="range" id="ageSlider" min="18" max="80" value="28" oninput="updateAge(this.value)"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Travel Experience</label>
+      <div class="card-grid cols-3">
+        <div class="card" data-value="first-time" onclick="selectCard(this,'travelExp')">
+          <span class="card-emoji">🌱</span>
+          <div class="card-name">First Timer</div>
+          <div class="card-desc">New to international travel</div>
+        </div>
+        <div class="card" data-value="intermediate" onclick="selectCard(this,'travelExp')">
+          <span class="card-emoji">🧭</span>
+          <div class="card-name">Experienced</div>
+          <div class="card-desc">A few trips under my belt</div>
+        </div>
+        <div class="card" data-value="frequent" onclick="selectCard(this,'travelExp')">
+          <span class="card-emoji">✈️</span>
+          <div class="card-name">Frequent Flyer</div>
+          <div class="card-desc">Seasoned world traveler</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="err-msg" id="err-travelExp">Please select your experience level.</p>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prevStep(2)">‹ Back</button>
+      <button class="btn btn-primary" onclick="nextStep(2)">Continue ›</button>
+    </div>
+  </div>
+
+  <!-- ─── STEP 3: Destination & Duration ─── -->
+  <div class="step" id="step3">
+    <div class="step-label">Step 03 — Destination</div>
+    <div class="step-title">Where are you headed?</div>
+    <div class="step-subtitle">Tell us your dream destination and how long you plan to stay.</div>
+
+    <div class="form-group">
+      <label class="form-label">Your Name</label>
+      <input class="input-field" type="text" id="travelerName" placeholder="e.g. Hassan Celik"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Destination</label>
+      <input class="input-field" type="text" id="destination" placeholder="e.g. Tokyo, Japan • Santorini, Greece • Patagonia"/>
+    </div>
+    <p class="err-msg" id="err-destination">Please enter your destination.</p>
+
+    <div class="form-group">
+      <label class="form-label">Trip Duration</label>
+      <select class="input-field" id="duration">
+        <option value="">Select duration...</option>
+        <option value="3 days">3 Days — Quick Escape</option>
+        <option value="5 days">5 Days — Short Break</option>
+        <option value="1 week">1 Week — Classic Trip</option>
+        <option value="10 days">10 Days — Extended Stay</option>
+        <option value="2 weeks">2 Weeks — Deep Dive</option>
+        <option value="3 weeks">3 Weeks — Long Journey</option>
+        <option value="1 month">1 Month — Slow Travel</option>
+        <option value="open-ended">Open-Ended</option>
+      </select>
+    </div>
+    <p class="err-msg" id="err-duration">Please select your trip duration.</p>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prevStep(3)">‹ Back</button>
+      <button class="btn btn-primary" onclick="nextStep(3)">Continue ›</button>
+    </div>
+  </div>
+
+  <!-- ─── STEP 4: Interests ─── -->
+  <div class="step" id="step4">
+    <div class="step-label">Step 04 — Your Interests</div>
+    <div class="step-title">What makes you come alive?</div>
+    <div class="step-subtitle">Select everything that excites you — we'll build a trip around what you love. (Pick at least 2)</div>
+
+    <div class="tag-cloud">
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="culture">🏛️ Culture & History</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="food">🍜 Food & Cuisine</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="adventure">🧗 Adventure & Sports</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="nature">🌿 Nature & Wildlife</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="nightlife">🎵 Nightlife & Music</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="photography">📷 Photography</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="wellness">🧘 Wellness & Spa</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="art">🎨 Art & Design</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="beach">🏖️ Beaches & Water</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="architecture">🏗️ Architecture</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="shopping">🛍️ Shopping & Markets</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="hiking">🥾 Hiking & Trekking</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="local">🤝 Local Experiences</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="luxury">💎 Luxury & Fine Dining</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="sports">⚽ Sports & Stadiums</span>
+      <span class="interest-tag" onclick="toggleInterest(this)" data-value="spiritual">🕌 Spiritual & Sacred</span>
+    </div>
+    <p class="err-msg" id="err-interests">Please select at least 2 interests.</p>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prevStep(4)">‹ Back</button>
+      <button class="btn btn-primary" onclick="nextStep(4)">Continue ›</button>
+    </div>
+  </div>
+
+  <!-- ─── STEP 5: Budget & Preferences ─── -->
+  <div class="step" id="step5">
+    <div class="step-label">Step 05 — Final Details</div>
+    <div class="step-title">Last few details…</div>
+    <div class="step-subtitle">These help us calibrate your perfect travel plan.</div>
+
+    <div class="form-group">
+      <label class="form-label">Budget Style</label>
+      <div class="card-grid cols-3">
+        <div class="card" data-value="budget" onclick="selectCard(this,'budget')">
+          <span class="card-emoji">💰</span>
+          <div class="card-name">Budget</div>
+          <div class="card-desc">Smart spending, big experiences</div>
+        </div>
+        <div class="card" data-value="moderate" onclick="selectCard(this,'budget')">
+          <span class="card-emoji">💳</span>
+          <div class="card-name">Moderate</div>
+          <div class="card-desc">Comfort without overspending</div>
+        </div>
+        <div class="card" data-value="luxury" onclick="selectCard(this,'budget')">
+          <span class="card-emoji">💎</span>
+          <div class="card-name">Luxury</div>
+          <div class="card-desc">The finest experiences</div>
+        </div>
+      </div>
+    </div>
+    <p class="err-msg" id="err-budget">Please select your budget style.</p>
+
+    <div class="form-group">
+      <label class="form-label">Dietary Needs</label>
+      <select class="input-field" id="dietaryNeeds">
+        <option value="none">No restrictions</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+        <option value="halal">Halal</option>
+        <option value="kosher">Kosher</option>
+        <option value="gluten-free">Gluten-Free</option>
+        <option value="allergies">Food Allergies</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Email (to receive your guide)</label>
+      <input class="input-field" type="email" id="travelerEmail" placeholder="your@email.com (optional)"/>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="prevStep(5)">‹ Back</button>
+      <button class="btn btn-primary" onclick="generateAdvice()" id="generateBtn">
+        ✨ Generate My Guide
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── LOADING ─── -->
+  <div id="loadingPanel" style="display:none">
+    <div class="loading-panel">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Crafting Your Personalized Guide</div>
+      <div class="loading-sub" id="loadingMsg">Analyzing your traveler profile…</div>
+    </div>
+  </div>
+
+  <!-- ─── RESULTS ─── -->
+  <div id="results">
+    <div class="result-hero">
+      <div class="result-badge" id="resultBadge">Solo Explorer</div>
+      <div class="result-title" id="resultTitle">Your Travel Guide is Ready</div>
+      <div class="result-subtitle" id="resultSubtitle">Personalized recommendations just for you</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="statDestination">—</div>
+        <div class="stat-label">Destination</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statDuration">—</div>
+        <div class="stat-label">Duration</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statScore">—</div>
+        <div class="stat-label">Personalization</div>
+      </div>
+    </div>
+
+    <div class="result-content" id="resultContent"></div>
+
+    <div class="nav-row" style="margin-top:24px;">
+      <button class="btn btn-ghost" onclick="resetForm()">← Start Over</button>
+      <button class="btn btn-primary" onclick="copyGuide()">📋 Copy Guide</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────
+const state = {
+  currentStep: 1,
+  totalSteps: 5,
+  travelStyle: null,
+  groupSize: 2,
+  age: 28,
+  travelExp: null,
+  name: '',
+  destination: '',
+  duration: '',
+  interests: [],
+  budget: null,
+  dietaryNeeds: 'none',
+  email: ''
+};
+
+// ── STARS ──────────────────────────────────────────
+(function createStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.cssText = `
+      left: ${Math.random()*100}%;
+      top: ${Math.random()*100}%;
+      animation-delay: ${Math.random()*4}s;
+      animation-duration: ${2+Math.random()*4}s;
+      opacity: ${Math.random()*0.3};
+    `;
+    container.appendChild(star);
+  }
+})();
+
+// ── AGE GROUPS ──────────────────────────────────────
+function updateAge(val) {
+  state.age = parseInt(val);
+  document.getElementById('ageDisplay').textContent = val;
+  let label, desc;
+  if (val < 25)      { label='Young Adult';        desc='Adventure-first, budget-savvy, spontaneous traveler'; }
+  else if (val < 35) { label='Twenties & Thirties'; desc='In your prime travel years — balanced comfort & adventure'; }
+  else if (val < 50) { label='Middle Age';          desc='Quality over quantity — curated & comfortable experiences'; }
+  else if (val < 65) { label='Mature Traveler';     desc='Cultural depth, comfort, and meaningful journeys'; }
+  else               { label='Senior Explorer';     desc='Enriching, accessible, and carefully planned adventures'; }
+  document.getElementById('ageGroupLabel').textContent = label;
+  document.getElementById('ageGroupDesc').textContent = desc;
+}
+
+// ── CARD SELECTION ─────────────────────────────────
+function selectCard(el, field) {
+  const group = el.parentElement;
+  group.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state[field] = el.dataset.value;
+  // Show group size if friends/family
+  if (field === 'travelStyle') {
+    const gsWrap = document.getElementById('groupSizeWrap');
+    if (gsWrap) gsWrap.style.display = (el.dataset.value === 'friends' || el.dataset.value === 'family') ? 'block' : 'none';
+  }
+  document.getElementById(`err-${field}`)?.classList.remove('show');
+}
+
+// ── INTEREST TAGS ──────────────────────────────────
+function toggleInterest(el) {
+  const val = el.dataset.value;
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    state.interests = state.interests.filter(i => i !== val);
+  } else {
+    el.classList.add('selected');
+    state.interests.push(val);
+  }
+  document.getElementById('err-interests')?.classList.remove('show');
+}
+
+// ── PROGRESS ───────────────────────────────────────
+function updateProgress(step) {
+  const pct = Math.round(((step - 1) / state.totalSteps) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('stepLabel').textContent = `Step ${step} of ${state.totalSteps}`;
+  document.getElementById('pctLabel').textContent = pct + '%';
+}
+
+// ── NAVIGATION ─────────────────────────────────────
+function nextStep(from) {
+  if (!validateStep(from)) return;
+  collectStep(from);
+  document.getElementById(`step${from}`).classList.remove('active');
+  document.getElementById(`step${from + 1}`).classList.add('active');
+  state.currentStep = from + 1;
+  updateProgress(from + 1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function prevStep(from) {
+  document.getElementById(`step${from}`).classList.remove('active');
+  document.getElementById(`step${from - 1}`).classList.add('active');
+  state.currentStep = from - 1;
+  updateProgress(from - 1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function collectStep(step) {
+  if (step === 3) {
+    state.name = document.getElementById('travelerName').value.trim();
+    state.destination = document.getElementById('destination').value.trim();
+    state.duration = document.getElementById('duration').value;
+  }
+  if (step === 5) {
+    state.dietaryNeeds = document.getElementById('dietaryNeeds').value;
+    state.email = document.getElementById('travelerEmail').value.trim();
+  }
+  if (document.getElementById('groupSize')) {
+    state.groupSize = parseInt(document.getElementById('groupSize').value);
+  }
+}
+
+// ── VALIDATION ─────────────────────────────────────
+function validateStep(step) {
+  let ok = true;
+  if (step === 1) {
+    if (!state.travelStyle) {
+      document.getElementById('err-travelStyle').classList.add('show');
+      ok = false;
+    }
+  }
+  if (step === 2) {
+    if (!state.travelExp) {
+      document.getElementById('err-travelExp').classList.add('show');
+      ok = false;
+    }
+  }
+  if (step === 3) {
+    const dest = document.getElementById('destination').value.trim();
+    const dur  = document.getElementById('duration').value;
+    if (!dest) { document.getElementById('err-destination').classList.add('show'); ok = false; }
+    if (!dur)  { document.getElementById('err-duration').classList.add('show');    ok = false; }
+  }
+  if (step === 4) {
+    if (state.interests.length < 2) {
+      document.getElementById('err-interests').classList.add('show');
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+// ── GENERATE ADVICE ────────────────────────────────
+async function generateAdvice() {
+  if (!state.budget) {
+    document.getElementById('err-budget').classList.add('show');
+    return;
+  }
+
+  collectStep(5);
+
+  // Hide form, show loading
+  document.getElementById('step5').classList.remove('active');
+  document.getElementById('progressWrap').style.display = 'none';
+  document.getElementById('loadingPanel').style.display = 'block';
+
+  // Cycle loading messages
+  const msgs = [
+    'Analyzing your traveler profile…',
+    'Consulting our global travel database…',
+    'Crafting personalized itineraries…',
+    'Finding hidden gems for you…',
+    'Polishing your perfect travel guide…'
+  ];
+  let mi = 0;
+  const msgEl = document.getElementById('loadingMsg');
+  const msgInterval = setInterval(() => {
+    mi = (mi + 1) % msgs.length;
+    msgEl.textContent = msgs[mi];
+  }, 1800);
+
+  // Build payload
+  const payload = {
+    name:         state.name || 'Traveler',
+    age:          state.age,
+    travelStyle:  state.travelStyle,
+    groupSize:    state.groupSize,
+    travelExp:    state.travelExp,
+    destination:  document.getElementById('destination').value.trim(),
+    duration:     document.getElementById('duration').value,
+    interests:    state.interests,
+    budget:       state.budget,
+    dietaryNeeds: state.dietaryNeeds,
+    email:        state.email
+  };
+
+  // ── n8n WEBHOOK INTEGRATION ───────────────────────
+  const N8N_URL = 'https://n8n.srv393225079.host.ultaserver.net/webhook/travel-advisor';
+
+  try {
+    // Send to n8n webhook
+    const response = await fetch(N8N_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    clearInterval(msgInterval);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Handle the n8n response format
+    if (data.success) {
+      const adviceText = data.advice || generateFallbackAdvice(payload);
+      const tokens = data.stats?.tokensUsed || 850;
+      showResults(payload, adviceText, tokens);
+    } else {
+      // Handle validation errors from n8n
+      throw new Error(data.message || 'Failed to generate advice');
+    }
+
+  } catch (err) {
+    clearInterval(msgInterval);
+    // Fallback demo content
+    const fallback = generateFallbackAdvice(payload);
+    showResults(payload, fallback, 800);
+  }
+}
+
+// ── FALLBACK DEMO ──────────────────────────────────
+function generateFallbackAdvice(p) {
+  const name = p.name || 'Traveler';
+  return `🎯 QUICK ASSESSMENT
+Welcome, ${name}! You're about to embark on an incredible ${p.travelStyle === 'solo' ? 'solo adventure' : p.travelStyle === 'couple' ? 'romantic getaway' : 'group journey'} to ${p.destination}. As a ${p.age}-year-old ${p.travelExp} traveler with a passion for ${p.interests.slice(0,2).join(' and ')}, this guide is crafted specifically for you.
+
+🗓️ SUGGESTED ITINERARY (${p.duration})
+Days 1-2: Arrival, orientation, and neighborhood exploration. Check into your accommodation and ease into local rhythms. Visit iconic landmarks in the morning, explore local markets in the afternoon.
+Days 3-4: Deep dive into ${p.interests[0] || 'cultural'} experiences — this is your specialty, and ${p.destination} delivers magnificently here.
+Days 5+: Day trips, hidden gems, and experiences off the tourist trail.
+
+🏨 WHERE TO STAY
+• ${p.budget === 'luxury' ? 'Boutique 5-star hotel in the historic center' : p.budget === 'moderate' ? 'Charming mid-range hotel with local character' : 'Highly-rated boutique hostel or guesthouse'} — Best for ${p.travelStyle} travelers
+• Serviced apartment in a residential neighborhood for authentic local feel
+• ${p.travelStyle === 'family' ? 'Resort with family amenities' : 'Design hotel with rooftop and city views'}
+
+🍽️ FOOD & DINING
+${p.dietaryNeeds !== 'none' ? `As a ${p.dietaryNeeds} traveler, you'll find ${p.destination} surprisingly accommodating — ask locals for recommendations beyond tourist spots.` : `${p.destination} is a food paradise. Go beyond tourist restaurants — eat where locals eat.`} Must-try: street food markets, local breakfast spots, and at least one traditional fine dining experience.
+
+🎭 TOP EXPERIENCES (tailored to your interests)
+1. ${p.interests[0] || 'Cultural'} — Find the best local expert for a private guided experience
+2. ${p.interests[1] || 'Food'} — Join a cooking class or food tour with a local chef
+3. ${p.interests[2] || 'Nature'} — Explore beyond the city for a day
+4. Sunrise or sunset at the most photogenic spot
+5. A spontaneous experience — leave one day completely unplanned
+
+💡 PRO TIPS for ${p.travelStyle === 'solo' ? 'Solo Travelers' : p.travelStyle === 'couple' ? 'Couples' : p.travelStyle === 'friends' ? 'Friend Groups' : 'Families'}
+1. Learn 10 key phrases in the local language — it transforms your experience
+2. Book popular attractions first thing in the morning to avoid crowds
+3. ${p.travelStyle === 'solo' ? 'Stay in social accommodations to meet fellow travelers' : p.travelStyle === 'couple' ? 'Research romantic sunset spots in advance — they fill up fast' : 'Split into sub-groups occasionally to cater to different interests'}
+4. Download offline maps before exploring less-touristy areas
+5. Keep a flexible itinerary — the best moments are unplanned
+
+💰 BUDGET BREAKDOWN (estimated)
+${p.budget === 'budget' ? '• Daily budget: ~$50-80 USD\n• Accommodation: $20-35/night\n• Food: $15-25/day\n• Activities: $10-20/day' : p.budget === 'luxury' ? '• Daily budget: $300-600+ USD\n• Accommodation: $150-400/night\n• Dining: $80-150/day\n• Experiences: $100-200/day' : '• Daily budget: $120-200 USD\n• Accommodation: $60-120/night\n• Food: $30-50/day\n• Activities: $30-50/day'}
+
+⚠️ WATCH OUT FOR
+1. Tourist traps near main attractions — walk 2 blocks away for authentic experiences
+2. Peak season crowds — book 2-3 weeks ahead for major sites
+3. ${p.travelStyle === 'solo' ? 'Don\'t share your accommodation details with strangers' : 'Agreeing on a meetup point if separated'}
+
+🛡️ SAFETY NOTE
+${p.destination} is generally safe for ${p.travelStyle} travelers. Register with your country's embassy, share your itinerary with someone trusted, and keep digital copies of all documents. Travel insurance covering medical and cancellation is strongly recommended.
+
+📱 ESSENTIAL APPS
+1. Google Maps (offline) + local transit app
+2. TripAdvisor for real-time reviews
+3. Google Translate with offline language pack
+4. XE Currency for real-time exchange rates
+5. WhatsApp for local SIM communication
+
+Bon voyage, ${name}! This trip is going to be extraordinary. ✈️`;
+}
+
+// ── SHOW RESULTS ───────────────────────────────────
+function showResults(payload, adviceText, tokens) {
+  document.getElementById('loadingPanel').style.display = 'none';
+
+  const badges = {
+    'solo':    '🎒 Solo Explorer',
+    'couple':  '💑 Romantic Duo',
+    'friends': '👥 Squad Goals',
+    'family':  '👨‍👩‍👧‍👦 Family Adventure'
+  };
+
+  document.getElementById('resultBadge').textContent = badges[payload.travelStyle] || '✈️ Traveler';
+  document.getElementById('resultTitle').textContent = `Your ${payload.destination} Guide`;
+  document.getElementById('resultSubtitle').textContent = `Crafted for ${payload.name || 'you'} • ${payload.duration} • ${payload.budget} budget`;
+  document.getElementById('statDestination').textContent = payload.destination.split(',')[0];
+  document.getElementById('statDuration').textContent = payload.duration;
+  document.getElementById('statScore').textContent = Math.min(100, (payload.interests.length * 10 + 40)) + '%';
+  document.getElementById('resultContent').textContent = adviceText;
+
+  document.getElementById('results').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── COPY GUIDE ─────────────────────────────────────
+function copyGuide() {
+  const content = document.getElementById('resultContent').textContent;
+  navigator.clipboard.writeText(content).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Guide', 2000);
+  });
+}
+
+// ── RESET ──────────────────────────────────────────
+function resetForm() {
+  location.reload();
+}
+
+// Init
+updateProgress(1);
+</script>
+</body>
+</html>
